@@ -1,0 +1,7 @@
+streamlit
+pandas
+numpy
+folium
+streamlit_folium
+s3fs
+st-files-connection
