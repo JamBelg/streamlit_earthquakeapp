@@ -1,26 +1,29 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import pydeck as pdk
-import boto3
+#import boto3
 #from bokeh.plotting import figure, show
 import folium
 from streamlit_folium import st_folium
+import s3fs
+from st_files_connection import FilesConnection
 
 # Function to read data from S3
 @st.cache_data
 def read_data():
-    st.session_state["aws_access_key_id"] = st.secrets["aws_access_key_id"]
-    st.session_state["aws_secret_access_key"] = st.secrets["aws_secret_access_key"]
-    s3 = boto3.client(
-        "s3",
-        aws_access_key_id=st.session_state["aws_access_key_id"],
-        aws_secret_access_key=st.session_state["aws_secret_access_key"],
-    )
-    bucket_name = "earthquakedb"
-    s3_file = "data_etl.csv"
-    obj = s3.get_object(Bucket=bucket_name, Key=s3_file)
-    data = pd.read_csv(obj["Body"])
+    conn = st.connection('s3', type=FilesConnection)
+    data = conn.read("earthquakedb/data_etl.csv", input_format="csv", ttl=600)
+    # st.session_state["aws_access_key_id"] = st.secrets["aws_access_key_id"]
+    # st.session_state["aws_secret_access_key"] = st.secrets["aws_secret_access_key"]
+    # s3 = boto3.client(
+    #     "s3",
+    #     aws_access_key_id=st.session_state["aws_access_key_id"],
+    #     aws_secret_access_key=st.session_state["aws_secret_access_key"],
+    # )
+    # bucket_name = "earthquakedb"
+    # s3_file = "data_etl.csv"
+    # obj = s3.get_object(Bucket=bucket_name, Key=s3_file)
+    # data = pd.read_csv(obj["Body"])
 
     data['datetime_str'] = data['Year'].astype(str) + ' ' + data['UTC_Time']
     data['Date UTC'] = pd.to_datetime(data['datetime_str'], format='%Y %b %d %H:%M:%S')
