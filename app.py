@@ -5,6 +5,9 @@ import folium
 from streamlit_folium import st_folium
 import s3fs
 from st_files_connection import FilesConnection
+import geopandas as gpd
+from shapely.geometry import Point
+import plotly.graph_objects as go
 
 # Function to read data from S3
 @st.cache_data
@@ -84,7 +87,20 @@ if st.checkbox('Show raw data'):
     st.subheader('Raw data')
     st.write(filtered_data.head(20))
 
-st.subheader("Earthquake's magnitude distribution")
+
+st.subheader('Frequency of recorded earthquakes')
+# Group by year and month and count the occurrences
+filtered_data['Year-Month-Day'] = filtered_data['Date UTC'].dt.to_period('D')
+day_counts = filtered_data['Year-Month-Day'].value_counts().sort_index()
+
+# Convert the result to a DataFrame
+month_counts_df = pd.DataFrame({'Day': day_counts.index.astype(str), 'Count': day_counts.values})
+
+# Plot the counts using st.bar_chart
+st.line_chart(month_counts_df.set_index('Day'))
+
+
+st.subheader("Magnitude distribution")
 # Calculate histogram values
 hist_values, bin_edges = np.histogram(filtered_data['Magnitude'], bins=10, range=(min_mag, max_mag))
 
@@ -97,7 +113,61 @@ hist_df = pd.DataFrame({
 # Display the bar chart using st.bar_chart
 st.bar_chart(hist_df.set_index('Magnitude Range'))
 
-st.subheader('Map')
+
+st.subheader('Distribution by region')
+# Load Swiss cantons shapefile
+cantons = gpd.read_file('swissBOUNDARIES3D_1_5_TLM_KANTONSGEBIET.shp')
+
+# Ensure the CRS is consistent
+cantons = cantons.to_crs(epsg=4326)
+# Convert earthquake data to GeoDataFrame
+gdf = gpd.GeoDataFrame(filtered_data, 
+                       geometry=gpd.points_from_xy(filtered_data.longitude, 
+                                                   filtered_data.latitude))
+gdf = gdf.set_crs(epsg=4326)
+
+# Spatial join: match earthquakes to cantons
+matched_data = gpd.sjoin(gdf, cantons, how="left", predicate='within')
+matched_data = matched_data[matched_data['NAME'].notna()].reset_index()
+
+
+# Calculate counts and average magnitude per canton
+canton_stats = matched_data.groupby('NAME').agg(
+    counts=('NAME', 'size'),
+    avg_magnitude=('Magnitude', 'mean')
+).reset_index()
+
+# Merge stats with canton GeoDataFrame
+cantons = cantons.merge(canton_stats, on='NAME', how='left').fillna(0)
+
+# Convert geometry to GeoJSON-like dict for Plotly
+cantons['geometry'] = cantons['geometry'].simplify(0.001)
+cantons_geojson = cantons.__geo_interface__
+
+# Create the figure
+fig = go.Figure(go.Choroplethmapbox(
+    geojson=cantons_geojson,
+    locations=cantons.index,
+    z=cantons['counts'],
+    colorscale="OrRd",
+    text=cantons['NAME'] + "<br>Earthquake's count: " + cantons['counts'].astype(str),
+    hoverinfo='text',
+    marker_opacity=0.5,
+    marker_line_width=0.5))
+
+# Set up the layout for the map
+fig.update_layout(
+    mapbox_style="carto-positron",
+    mapbox_zoom=6,
+    mapbox_center={"lat": 46.8182, "lon": 8.2275},
+    margin={"r":0,"t":0,"l":0,"b":0}
+)
+
+# Display the plot in Streamlit
+st.plotly_chart(fig)
+
+
+
 # Define the bounds (min and max latitude and longitude)
 bounds = [
     [filtered_data['latitude'].min(), filtered_data['longitude'].min()],
@@ -127,17 +197,5 @@ for i, row in filtered_data.iterrows():
         popup=f"Magnitude: {row['Magnitude']}"
     ).add_to(m)
 
-
 # Display the map in Streamlit
 st_folium(m, width=725)
-
-st.subheader('Frequence of recorded earthquakes')
-# Group by year and month and count the occurrences
-filtered_data['Year-Month'] = filtered_data['Date UTC'].dt.to_period('M')
-month_counts = filtered_data['Year-Month'].value_counts().sort_index()
-
-# Convert the result to a DataFrame
-month_counts_df = pd.DataFrame({'Month': month_counts.index.astype(str), 'Count': month_counts.values})
-
-# Plot the counts using st.bar_chart
-st.bar_chart(month_counts_df.set_index('Month'))
