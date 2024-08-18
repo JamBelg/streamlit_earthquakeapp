@@ -5,3 +5,6 @@ folium
 streamlit_folium
 s3fs
 st-files-connection
+geopandas
+shapely
+plotly
