@@ -33,7 +33,7 @@ st.sidebar.title("About")
 
 st.sidebar.markdown(
     """
-    This application provides detailed analysis and visualization of recorded earthquakes in Switzerland.
+    This application provides detailed analysis and visualization of recorded earthquakes in Switzerland.\
     Discover insights into seismic activity and track historical earthquake data with interactive charts and maps.
     
     Data are from [Swiss Seismological Service](http://seismo.ethz.ch/en/home/).
