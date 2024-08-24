@@ -79,7 +79,7 @@ st.subheader("Filter data:")
 min_mag, max_mag = st.slider(label='Select Magnitude Range',
                              min_value=0.0,
                              max_value=8.0,
-                             value=(1.0, 5.0),
+                             value=(2.0, 5.0),
                              step=0.5)
 filtered_data = data[(data['Magnitude']>=min_mag) & (data['Magnitude']<=max_mag)]
 
