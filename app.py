@@ -85,7 +85,7 @@ filtered_data = data[(data['Magnitude']>=min_mag) & (data['Magnitude']<=max_mag)
 
 if st.checkbox('Show raw data'):
     st.subheader('Raw data')
-    st.write(filtered_data.head(20))
+    st.write(filtered_data.sort_values(by='Date UTC', ascending=False).head(100))
 
 
 st.subheader('Frequency of recorded earthquakes')
