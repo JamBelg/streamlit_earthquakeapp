@@ -114,90 +114,88 @@ hist_df = pd.DataFrame({
 st.bar_chart(hist_df.set_index('Magnitude Range'))
 
 
-tab1, tab2 = st.tabs(["Distribution by region", "GeoMap"])
-with tab1:
-    st.subheader('Distribution by region')
-    # Load Swiss cantons shapefile
-    cantons = gpd.read_file('swissBOUNDARIES3D_1_5_TLM_KANTONSGEBIET.shp')
 
-    # Ensure the CRS is consistent
-    cantons = cantons.to_crs(epsg=4326)
-    # Convert earthquake data to GeoDataFrame
-    gdf = gpd.GeoDataFrame(filtered_data, 
-                           geometry=gpd.points_from_xy(filtered_data.longitude, 
-                                                       filtered_data.latitude))
-    gdf = gdf.set_crs(epsg=4326)
+st.subheader('Distribution by region')
+# Load Swiss cantons shapefile
+cantons = gpd.read_file('swissBOUNDARIES3D_1_5_TLM_KANTONSGEBIET.shp')
 
-    # Spatial join: match earthquakes to cantons
-    matched_data = gpd.sjoin(gdf, cantons, how="left", predicate='within')
-    matched_data = matched_data[matched_data['NAME'].notna()].reset_index()
+# Ensure the CRS is consistent
+cantons = cantons.to_crs(epsg=4326)
+# Convert earthquake data to GeoDataFrame
+gdf = gpd.GeoDataFrame(filtered_data, 
+                       geometry=gpd.points_from_xy(filtered_data.longitude, 
+                                                   filtered_data.latitude))
+gdf = gdf.set_crs(epsg=4326)
 
-
-    # Calculate counts and average magnitude per canton
-    canton_stats = matched_data.groupby('NAME').agg(
-        counts=('NAME', 'size'),
-        avg_magnitude=('Magnitude', 'mean')
-    ).reset_index()
-
-    # Merge stats with canton GeoDataFrame
-    cantons = cantons.merge(canton_stats, on='NAME', how='left').fillna(0)
-    
-    # Convert geometry to GeoJSON-like dict for Plotly
-    cantons['geometry'] = cantons['geometry'].simplify(0.001)
-    cantons_geojson = cantons.__geo_interface__
-    
-    # Create the figure
-    fig = go.Figure(go.Choroplethmapbox(
-        geojson=cantons_geojson,
-        locations=cantons.index,
-        z=cantons['counts'],
-        colorscale="OrRd",
-        text=cantons['NAME'] + "<br>Count: " + cantons['counts'].astype(str),
-        hoverinfo='text',
-        marker_opacity=0.5,
-        marker_line_width=0.5))
-    
-    # Set up the layout for the map
-    fig.update_layout(
-        mapbox_style="carto-positron",
-        mapbox_zoom=6,
-        mapbox_center={"lat": 46.8182, "lon": 8.2275},
-        margin={"r":0,"t":0,"l":0,"b":0}
-    )
-    
-    # Display the plot in Streamlit
-    st.plotly_chart(fig)
+# Spatial join: match earthquakes to cantons
+matched_data = gpd.sjoin(gdf, cantons, how="left", predicate='within')
+matched_data = matched_data[matched_data['NAME'].notna()].reset_index()
 
 
-with tab2:
-    # Define the bounds (min and max latitude and longitude)
-    bounds = [
-        [filtered_data['latitude'].min(), filtered_data['longitude'].min()],
-        [filtered_data['latitude'].max(), filtered_data['longitude'].max()]
-    ]
-    
-    # Create a map centered on the average location with bounds
-    m = folium.Map(location=[filtered_data['latitude'].mean(),
-                             filtered_data['longitude'].mean()],
-                   zoom_start=5)
-    
-    # Fit the map to the bounds
-    m.fit_bounds(bounds)
-    
-    # Function to scale the radius
-    def scale_radius(magnitude):
-        return 2 ** (magnitude)  # Exponential scaling
-    
-    # Add points to the map
-    for i, row in filtered_data.iterrows():
-        folium.CircleMarker(
-            location=[row['latitude'], row['longitude']],
-            radius=scale_radius(row['Magnitude']),  # Apply the scaling function
-            color='red',
-            fill=True,
-            fill_color='red',
-            popup=f"Magnitude: {row['Magnitude']}"
-        ).add_to(m)
-    
-    # Display the map in Streamlit
-    output = st_folium(m, width=725)
+# Calculate counts and average magnitude per canton
+canton_stats = matched_data.groupby('NAME').agg(
+    counts=('NAME', 'size'),
+    avg_magnitude=('Magnitude', 'mean')
+).reset_index()
+
+# Merge stats with canton GeoDataFrame
+cantons = cantons.merge(canton_stats, on='NAME', how='left').fillna(0)
+
+# Convert geometry to GeoJSON-like dict for Plotly
+cantons['geometry'] = cantons['geometry'].simplify(0.001)
+cantons_geojson = cantons.__geo_interface__
+
+# Create the figure
+fig = go.Figure(go.Choroplethmapbox(
+    geojson=cantons_geojson,
+    locations=cantons.index,
+    z=cantons['counts'],
+    colorscale="OrRd",
+    text=cantons['NAME'] + "<br>Count: " + cantons['counts'].astype(str),
+    hoverinfo='text',
+    marker_opacity=0.5,
+    marker_line_width=0.5))
+
+# Set up the layout for the map
+fig.update_layout(
+    mapbox_style="carto-positron",
+    mapbox_zoom=6,
+    mapbox_center={"lat": 46.8182, "lon": 8.2275},
+    margin={"r":0,"t":0,"l":0,"b":0}
+)
+
+# Display the plot in Streamlit
+st.plotly_chart(fig)
+
+
+# Define the bounds (min and max latitude and longitude)
+bounds = [
+    [filtered_data['latitude'].min(), filtered_data['longitude'].min()],
+    [filtered_data['latitude'].max(), filtered_data['longitude'].max()]
+]
+
+# Create a map centered on the average location with bounds
+m = folium.Map(location=[filtered_data['latitude'].mean(),
+                         filtered_data['longitude'].mean()],
+               zoom_start=5)
+
+# Fit the map to the bounds
+m.fit_bounds(bounds)
+
+# Function to scale the radius
+def scale_radius(magnitude):
+    return 2 ** (magnitude)  # Exponential scaling
+
+# Add points to the map
+for i, row in filtered_data.iterrows():
+    folium.CircleMarker(
+        location=[row['latitude'], row['longitude']],
+        radius=scale_radius(row['Magnitude']),  # Apply the scaling function
+        color='red',
+        fill=True,
+        fill_color='red',
+        popup=f"Magnitude: {row['Magnitude']}"
+    ).add_to(m)
+
+# Display the map in Streamlit
+output = st_folium(m, width=725)
