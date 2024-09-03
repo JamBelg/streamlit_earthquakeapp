@@ -198,4 +198,4 @@ for i, row in filtered_data.iterrows():
     ).add_to(m)
 
 # Display the map in Streamlit
-output = st_folium(m, width=725)
+st_folium(m, width=725)
