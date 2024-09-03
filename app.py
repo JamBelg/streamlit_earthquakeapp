@@ -200,4 +200,4 @@ with tab2:
         ).add_to(m)
     
     # Display the map in Streamlit
-    st_folium(m, width=725)
+    output = st_folium(m, width=725)
