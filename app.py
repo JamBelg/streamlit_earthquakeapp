@@ -164,9 +164,6 @@ fig.update_layout(
     margin={"r":0,"t":0,"l":0,"b":0}
 )
 
-# Display the plot in Streamlit
-st.plotly_chart(fig)
-
 
 # Define the bounds (min and max latitude and longitude)
 bounds = [
@@ -197,5 +194,9 @@ for i, row in filtered_data.iterrows():
         popup=f"Magnitude: {row['Magnitude']}"
     ).add_to(m)
 
-# Display the map in Streamlit
-st_folium(m, width=725)
+tab1, tab2 = st.tabs(["Plot1", "Plot2"])
+with tab1:
+    out = folium_static(m, width=725)
+
+with tab2:
+    st.plotly_chart(fig)
