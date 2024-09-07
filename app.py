@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import folium
-from streamlit_folium import st_folium
+from streamlit_folium import st_folium, folium_static
 import s3fs
 from st_files_connection import FilesConnection
 import geopandas as gpd
