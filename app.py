@@ -13,7 +13,7 @@ import plotly.graph_objects as go
 @st.cache_data
 def read_data():
     conn = st.connection('s3', type=FilesConnection)
-    data = conn.read("earthquakedb/data_etl.csv", input_format="csv", ttl=600)
+    data = conn.read("swissearthquakes-s3/data_etl.csv", input_format="csv", ttl=600)
 
     data['datetime_str'] = data['Year'].astype(str) + ' ' + data['UTC_Time']
     data['Date UTC'] = pd.to_datetime(data['datetime_str'], format='%Y %b %d %H:%M:%S')
